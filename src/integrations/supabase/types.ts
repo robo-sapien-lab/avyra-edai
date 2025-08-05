@@ -14,7 +14,165 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          grade: number | null
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+          school: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          grade?: number | null
+          id: string
+          name: string
+          role?: Database["public"]["Enums"]["user_role"]
+          school?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          grade?: number | null
+          id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          school?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      progress: {
+        Row: {
+          id: string
+          mastery_level: number
+          questions_attempted: number | null
+          questions_correct: number | null
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          mastery_level?: number
+          questions_attempted?: number | null
+          questions_correct?: number | null
+          topic: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          mastery_level?: number
+          questions_attempted?: number | null
+          questions_correct?: number | null
+          topic?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          answer_text: string | null
+          context_used: string | null
+          created_at: string
+          id: string
+          question_text: string
+          sources: string[] | null
+          user_id: string
+        }
+        Insert: {
+          answer_text?: string | null
+          context_used?: string | null
+          created_at?: string
+          id?: string
+          question_text: string
+          sources?: string[] | null
+          user_id: string
+        }
+        Update: {
+          answer_text?: string | null
+          context_used?: string | null
+          created_at?: string
+          id?: string
+          question_text?: string
+          sources?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quizzes: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          quiz_data: Json
+          score: number | null
+          title: string
+          total_questions: number
+          user_answers: Json | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          quiz_data: Json
+          score?: number | null
+          title: string
+          total_questions: number
+          user_answers?: Json | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          quiz_data?: Json
+          score?: number | null
+          title?: string
+          total_questions?: number
+          user_answers?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      uploads: {
+        Row: {
+          created_at: string
+          extracted_text: string | null
+          file_name: string
+          file_type: string
+          file_url: string
+          id: string
+          processing_status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_text?: string | null
+          file_name: string
+          file_type: string
+          file_url: string
+          id?: string
+          processing_status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          extracted_text?: string | null
+          file_name?: string
+          file_type?: string
+          file_url?: string
+          id?: string
+          processing_status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +181,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      question_type: "mcq" | "short_answer"
+      user_role: "student" | "teacher"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +309,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      question_type: ["mcq", "short_answer"],
+      user_role: ["student", "teacher"],
+    },
   },
 } as const
