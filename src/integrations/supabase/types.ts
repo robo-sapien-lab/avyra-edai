@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      embeddings: {
+        Row: {
+          content: string
+          created_at: string
+          embedding_data: Json | null
+          id: string
+          subject: string | null
+          subtopic: string | null
+          topic: string | null
+          updated_at: string
+          upload_id: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          embedding_data?: Json | null
+          id?: string
+          subject?: string | null
+          subtopic?: string | null
+          topic?: string | null
+          updated_at?: string
+          upload_id?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          embedding_data?: Json | null
+          id?: string
+          subject?: string | null
+          subtopic?: string | null
+          topic?: string | null
+          updated_at?: string
+          upload_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "embeddings_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -47,27 +94,33 @@ export type Database = {
       progress: {
         Row: {
           id: string
-          mastery_level: number
+          mastery_score: number
           questions_attempted: number | null
           questions_correct: number | null
+          subject: string | null
+          subtopic: string | null
           topic: string
           updated_at: string
           user_id: string
         }
         Insert: {
           id?: string
-          mastery_level?: number
+          mastery_score?: number
           questions_attempted?: number | null
           questions_correct?: number | null
+          subject?: string | null
+          subtopic?: string | null
           topic: string
           updated_at?: string
           user_id: string
         }
         Update: {
           id?: string
-          mastery_level?: number
+          mastery_score?: number
           questions_attempted?: number | null
           questions_correct?: number | null
+          subject?: string | null
+          subtopic?: string | null
           topic?: string
           updated_at?: string
           user_id?: string
@@ -81,7 +134,11 @@ export type Database = {
           created_at: string
           id: string
           question_text: string
+          source_chunks: Json | null
           sources: string[] | null
+          subject: string | null
+          subtopic: string | null
+          topic: string | null
           user_id: string
         }
         Insert: {
@@ -90,7 +147,11 @@ export type Database = {
           created_at?: string
           id?: string
           question_text: string
+          source_chunks?: Json | null
           sources?: string[] | null
+          subject?: string | null
+          subtopic?: string | null
+          topic?: string | null
           user_id: string
         }
         Update: {
@@ -99,7 +160,11 @@ export type Database = {
           created_at?: string
           id?: string
           question_text?: string
+          source_chunks?: Json | null
           sources?: string[] | null
+          subject?: string | null
+          subtopic?: string | null
+          topic?: string | null
           user_id?: string
         }
         Relationships: []
@@ -111,7 +176,10 @@ export type Database = {
           id: string
           quiz_data: Json
           score: number | null
+          subject: string | null
+          subtopic: string | null
           title: string
+          topic: string | null
           total_questions: number
           user_answers: Json | null
           user_id: string
@@ -122,7 +190,10 @@ export type Database = {
           id?: string
           quiz_data: Json
           score?: number | null
+          subject?: string | null
+          subtopic?: string | null
           title: string
+          topic?: string | null
           total_questions: number
           user_answers?: Json | null
           user_id: string
@@ -133,7 +204,10 @@ export type Database = {
           id?: string
           quiz_data?: Json
           score?: number | null
+          subject?: string | null
+          subtopic?: string | null
           title?: string
+          topic?: string | null
           total_questions?: number
           user_answers?: Json | null
           user_id?: string
@@ -149,6 +223,9 @@ export type Database = {
           file_url: string
           id: string
           processing_status: string | null
+          subject: string | null
+          subtopic: string | null
+          topic: string | null
           user_id: string
         }
         Insert: {
@@ -159,6 +236,9 @@ export type Database = {
           file_url: string
           id?: string
           processing_status?: string | null
+          subject?: string | null
+          subtopic?: string | null
+          topic?: string | null
           user_id: string
         }
         Update: {
@@ -169,6 +249,9 @@ export type Database = {
           file_url?: string
           id?: string
           processing_status?: string | null
+          subject?: string | null
+          subtopic?: string | null
+          topic?: string | null
           user_id?: string
         }
         Relationships: []

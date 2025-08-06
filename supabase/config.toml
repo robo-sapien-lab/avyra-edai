@@ -1,1 +1,13 @@
 project_id = "hihfygdfoyunyejtkwnp"
+
+[functions.upload]
+verify_jwt = true
+
+[functions.ask]
+verify_jwt = true
+
+[functions.quiz]
+verify_jwt = true
+
+[functions.dashboard]
+verify_jwt = true
