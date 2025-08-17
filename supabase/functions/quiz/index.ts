@@ -30,7 +30,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
     // Get the authorization header
@@ -52,9 +52,9 @@ serve(async (req) => {
       const body = await req.json();
       
       // Check if this is a quiz generation request or submission
-      if (body.generate) {
+      if (body.action === 'generate') {
         return await generateQuiz(supabaseClient, user.id);
-      } else if (body.quiz_id && body.answers) {
+      } else if (body.action === 'submit' && body.quiz_id && body.answers) {
         return await submitQuiz(supabaseClient, user.id, body as QuizSubmission);
       } else {
         throw new Error('Invalid request body');
@@ -148,13 +148,15 @@ async function generateQuiz(supabaseClient: any, userId: string) {
   console.log(`Quiz generated for user ${userId}: ${quiz.id}`);
 
   return new Response(JSON.stringify({
-    quiz_id: quiz.id,
-    title: quiz.title,
-    questions: quizQuestions.map((q, index) => ({
-      id: index,
-      question: q.question,
-      options: q.options
-    }))
+    quiz: {
+      id: quiz.id,
+      title: quiz.title,
+      questions: quizQuestions.map((q, index) => ({
+        id: index,
+        question: q.question,
+        options: q.options
+      }))
+    }
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

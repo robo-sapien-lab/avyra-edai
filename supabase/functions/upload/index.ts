@@ -35,9 +35,9 @@ serve(async (req) => {
 
     const formData = await req.formData();
     const file = formData.get('file') as File;
-    const subject = formData.get('subject') as string;
-    const topic = formData.get('topic') as string;
-    const subtopic = formData.get('subtopic') as string;
+    const subject = formData.get('subject') as string || null;
+    const topic = formData.get('topic') as string || null;
+    const subtopic = formData.get('subtopic') as string || null;
 
     if (!file) {
       throw new Error('No file provided');
@@ -62,20 +62,32 @@ serve(async (req) => {
     // Extract text from file
     let extractedText = '';
     
-    if (file.type === 'application/pdf') {
-      // For PDFs, we'll use a simple text extraction
-      // In production, you'd want to use a proper PDF parsing library
-      const arrayBuffer = await file.arrayBuffer();
-      const text = new TextDecoder().decode(arrayBuffer);
-      // This is a simplified extraction - in reality you'd use PyMuPDF or similar
-      extractedText = text.replace(/[^\x20-\x7E]/g, ' ').substring(0, 10000);
-    } else if (file.type.startsWith('image/')) {
-      // For images, we'll simulate OCR
-      // In production, you'd use Tesseract or similar
-      extractedText = `[Image content from ${file.name}] - OCR text would be extracted here`;
-    } else {
-      // For text files
-      extractedText = await file.text();
+    try {
+      if (file.type === 'application/pdf') {
+        // For PDFs, extract readable text portions
+        const arrayBuffer = await file.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const text = new TextDecoder('utf-8', { fatal: false }).decode(uint8Array);
+        
+        // Extract readable text between common PDF markers
+        const textMatches = text.match(/\(([^)]+)\)|\/Title\s*\(([^)]+)\)|BT\s*([^ET]*)\s*ET/g);
+        if (textMatches && textMatches.length > 0) {
+          extractedText = textMatches.join(' ').replace(/[^\x20-\x7E\n\r]/g, ' ').substring(0, 10000);
+        } else {
+          extractedText = `PDF document: ${file.name} - Text extraction requires server-side processing`;
+        }
+      } else if (file.type.startsWith('image/')) {
+        // For images, create a descriptive placeholder
+        extractedText = `Image file: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB) - Contains visual content that would be processed with OCR in production`;
+      } else if (file.type.startsWith('text/')) {
+        // For text files
+        extractedText = await file.text();
+      } else {
+        extractedText = `File: ${file.name} - Content type: ${file.type}`;
+      }
+    } catch (textError) {
+      console.error('Text extraction error:', textError);
+      extractedText = `File: ${file.name} - Text extraction failed, but file was uploaded successfully`;
     }
 
     // Save upload metadata to database
