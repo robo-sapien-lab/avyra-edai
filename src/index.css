@@ -11,8 +11,10 @@ All colors MUST be HSL.
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
-    --card: 0 0% 100%;
+    --card: 0 0% 100% / 0.8;
     --card-foreground: 222.2 84% 4.9%;
+    --card-glass: 0 0% 100% / 0.1;
+    --card-border-glass: 0 0% 100% / 0.2;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
@@ -73,8 +75,10 @@ All colors MUST be HSL.
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222.2 84% 4.9% / 0.8;
     --card-foreground: 210 40% 98%;
+    --card-glass: 210 40% 98% / 0.1;
+    --card-border-glass: 210 40% 98% / 0.2;
 
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
