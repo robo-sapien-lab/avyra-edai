@@ -47,7 +47,7 @@ const Ask = () => {
 
     try {
       // NEW: Standard fetch call to our Google Cloud Function
-      const response = await fetch(process.env.NEXT_PUBLIC_API_ASK_QUESTION_URL!, {
+      const response = await fetch(process.env.VITE_NEXT_PUBLIC_API_ASK_QUESTION_URL!, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
