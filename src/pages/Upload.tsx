@@ -53,7 +53,7 @@ const Upload = () => {
     try {
       // STEP 1: Get the secure upload URL from our Google Cloud Function
       setUploadProgress(prev => ({ ...prev, [file.name]: 10 }));
-      const generateUrlResponse = await fetch(process.env.NEXT_PUBLIC_API_GENERATE_URL!, {
+      const generateUrlResponse = await fetch(process.env.VITE_NEXT_PUBLIC_API_GENERATE_URL!, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
