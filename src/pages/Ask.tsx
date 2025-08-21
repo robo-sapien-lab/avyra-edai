@@ -1,4 +1,3 @@
-// pages/ask.tsx
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Send, MessageCircle, BookOpen, Lightbulb } from 'lucide-react';
@@ -6,10 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { useSupabaseFunction } from '@/hooks/useSupabaseFunction';
 import Layout from '@/components/Layout';
-// NEW: Import the Supabase client
-import { supabase } from '@/lib/supabaseClient';
-import { toast } from '@/hooks/use-toast';
 
 interface Question {
   id: string;
@@ -25,38 +22,18 @@ interface Question {
 const Ask = () => {
   const [question, setQuestion] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { invoke, loading } = useSupabaseFunction();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim()) return;
 
-    // NEW: Get the session from the client
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      toast({ title: 'Authentication Error', description: 'You must be logged in to ask a question.', variant: 'destructive' });
-      return;
-    }
-
     const currentQuestion = question;
     setQuestion('');
-    setLoading(true);
 
     try {
-      const response = await fetch(import.meta.env.VITE_API_ASK_QUESTION_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ query: currentQuestion }),
-      });
-
-      if (!response.ok) throw new Error('The request to the AI tutor failed.');
-
-      const result = await response.json();
-
+      const result = await invoke('ask', { question: currentQuestion });
+      
       const newQuestion: Question = {
         id: Date.now().toString(),
         question: currentQuestion,
@@ -70,14 +47,7 @@ const Ask = () => {
 
       setQuestions(prev => [newQuestion, ...prev]);
     } catch (error) {
-      console.error('Ask question error:', error);
-      toast({
-        title: 'An error occurred',
-        description: 'Could not get an answer from the AI tutor. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
+      // Error handled by hook
     }
   };
 
@@ -189,7 +159,7 @@ const Ask = () => {
                         <p className="font-medium text-sm text-muted-foreground mb-2">You asked:</p>
                         <p>{qa.question}</p>
                       </div>
-
+                      
                       <div className="p-4 bg-primary/5 rounded-lg">
                         <p className="font-medium text-sm text-primary mb-2 flex items-center gap-2">
                           <BookOpen className="w-4 h-4" />
