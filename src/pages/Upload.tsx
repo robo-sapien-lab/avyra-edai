@@ -1,4 +1,3 @@
-// pages/upload.tsx
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
@@ -8,10 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { useSupabaseFunction } from '@/hooks/useSupabaseFunction';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
-// NEW: Import the Supabase client we just created
-import { supabase } from '@/lib/supabaseClient';
 
 const Upload = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -20,7 +18,8 @@ const Upload = () => {
   const [subtopic, setSubtopic] = useState('');
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [completedUploads, setCompletedUploads] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
+  
+  const { invoke, loading } = useSupabaseFunction();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -37,60 +36,40 @@ const Upload = () => {
   };
 
   const uploadFile = async (file: File) => {
-    // NEW: Get the session from the client
-    const { data: { session } } = await supabase.auth.getSession();
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('subject', subject);
+    formData.append('topic', topic);
+    formData.append('subtopic', subtopic);
 
-    if (!session?.access_token) {
-      toast({ title: 'Authentication Error', description: 'You must be logged in to upload files.', variant: 'destructive' });
-      return;
-    }
-
+    // Simulate progress for user feedback
     setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
+    
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => ({
+        ...prev,
+        [file.name]: Math.min((prev[file.name] || 0) + 10, 90)
+      }));
+    }, 200);
 
     try {
-      // STEP 1: Get the secure upload URL
-      setUploadProgress(prev => ({ ...prev, [file.name]: 10 }));
-      const generateUrlResponse = await fetch(import.meta.env.VITE_API_GENERATE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+      await invoke('upload', formData, {
+        onSuccess: () => {
+          clearInterval(progressInterval);
+          setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
+          setCompletedUploads(prev => [...prev, file.name]);
+          toast({
+            title: 'Upload successful',
+            description: `${file.name} has been processed and added to your knowledge base.`,
+          });
         },
-        body: JSON.stringify({
-          fileName: file.name,
-          contentType: file.type,
-        }),
+        onError: () => {
+          clearInterval(progressInterval);
+          setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
+        }
       });
-
-      if (!generateUrlResponse.ok) throw new Error('Failed to get an upload URL.');
-
-      const { signedUrl } = await generateUrlResponse.json();
-      setUploadProgress(prev => ({ ...prev, [file.name]: 30 }));
-
-      // STEP 2: Upload the file directly to Google Cloud Storage
-      const uploadResponse = await fetch(signedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-
-      if (!uploadResponse.ok) throw new Error('File upload failed.');
-
-      setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
-      setCompletedUploads(prev => [...prev, file.name]);
-      toast({
-        title: 'Upload successful',
-        description: `${file.name} is now being processed.`,
-      });
-
     } catch (error) {
-      console.error('Upload error:', error);
-      setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
-      toast({
-        title: 'Upload failed',
-        description: `There was a problem uploading ${file.name}.`,
-        variant: 'destructive',
-      });
+      clearInterval(progressInterval);
     }
   };
 
@@ -104,13 +83,11 @@ const Upload = () => {
       return;
     }
 
-    setLoading(true);
     for (const file of files) {
       if (!completedUploads.includes(file.name)) {
         await uploadFile(file);
       }
     }
-    setLoading(false);
   };
 
   return (
@@ -243,8 +220,8 @@ const Upload = () => {
 
               {files.length > 0 && (
                 <div className="mt-6">
-                  <Button
-                    onClick={handleUploadAll}
+                  <Button 
+                    onClick={handleUploadAll} 
                     disabled={loading || !subject}
                     className="w-full"
                   >
