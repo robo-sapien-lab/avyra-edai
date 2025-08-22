@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { useSupabaseFunction } from '@/hooks/useSupabaseFunction';
+import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
 
@@ -18,8 +18,9 @@ const Upload = () => {
   const [subtopic, setSubtopic] = useState('');
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [completedUploads, setCompletedUploads] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
   
-  const { invoke, loading } = useSupabaseFunction();
+  const { user } = useAuthStore();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -36,8 +37,11 @@ const Upload = () => {
   };
 
   const uploadFile = async (file: File) => {
+    if (!user) return;
+
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('studentId', user.id);
     formData.append('subject', subject);
     formData.append('topic', topic);
     formData.append('subtopic', subtopic);
@@ -53,28 +57,40 @@ const Upload = () => {
     }, 200);
 
     try {
-      await invoke('upload', formData, {
-        onSuccess: () => {
-          clearInterval(progressInterval);
-          setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
-          setCompletedUploads(prev => [...prev, file.name]);
-          toast({
-            title: 'Upload successful',
-            description: `${file.name} has been processed and added to your knowledge base.`,
-          });
-        },
-        onError: () => {
-          clearInterval(progressInterval);
-          setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
-        }
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      clearInterval(progressInterval);
+      setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
+      setCompletedUploads(prev => [...prev, file.name]);
+      
+      toast({
+        title: 'Upload successful',
+        description: `${file.name} has been processed and added to your knowledge base.`,
       });
     } catch (error) {
       clearInterval(progressInterval);
+      setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
+      
+      console.error('Error uploading file:', error);
+      toast({
+        title: 'Upload failed',
+        description: `Failed to upload ${file.name}. Please try again.`,
+        variant: 'destructive',
+      });
     }
   };
 
   const handleUploadAll = async () => {
-    if (!subject || files.length === 0) {
+    if (!subject || files.length === 0 || !user) {
       toast({
         title: 'Missing information',
         description: 'Please add at least a subject and select files to upload.',
@@ -83,10 +99,16 @@ const Upload = () => {
       return;
     }
 
-    for (const file of files) {
-      if (!completedUploads.includes(file.name)) {
-        await uploadFile(file);
+    setLoading(true);
+    
+    try {
+      for (const file of files) {
+        if (!completedUploads.includes(file.name)) {
+          await uploadFile(file);
+        }
       }
+    } finally {
+      setLoading(false);
     }
   };
 

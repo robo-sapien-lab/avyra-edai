@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useSupabaseFunction } from '@/hooks/useSupabaseFunction';
+import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
 
@@ -40,13 +40,31 @@ const Quiz = () => {
   const [showResults, setShowResults] = useState(false);
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [loading, setLoading] = useState(false);
   
-  const { invoke, loading } = useSupabaseFunction();
+  const { user } = useAuthStore();
 
   const generateQuiz = async () => {
+    if (!user) return;
+    
     setIsGenerating(true);
     try {
-      const result = await invoke('quiz', { action: 'generate' });
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/quiz/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentId: user.id,
+          topic: undefined // Optional topic parameter
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       setCurrentQuiz(result.quiz);
       setCurrentQuestion(0);
       setSelectedAnswers([]);
@@ -54,6 +72,7 @@ const Quiz = () => {
       setShowResults(false);
       setQuizResult(null);
     } catch (error) {
+      console.error('Error generating quiz:', error);
       toast({
         title: 'Error generating quiz',
         description: 'Please make sure you have uploaded some materials first.',
@@ -84,19 +103,43 @@ const Quiz = () => {
   };
 
   const submitQuiz = async (answers: number[]) => {
-    if (!currentQuiz) return;
+    if (!currentQuiz || !user) return;
 
+    setLoading(true);
     try {
-      const result = await invoke('quiz', {
-        action: 'submit',
-        quiz_id: currentQuiz.id,
-        answers
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/quiz/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          quizId: currentQuiz.id,
+          studentId: user.id,
+          answers
+        })
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       setQuizResult(result);
       setShowResults(true);
+      
+      toast({
+        title: 'Quiz completed!',
+        description: `Your score: ${Math.round((result.score / result.total) * 100)}%`,
+      });
     } catch (error) {
-      // Error handled by hook
+      console.error('Error submitting quiz:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to submit quiz. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -134,8 +177,8 @@ const Quiz = () => {
                 <p className="text-muted-foreground mb-6">
                   We'll generate personalized questions based on your uploaded materials and learning progress
                 </p>
-                <Button onClick={generateQuiz} disabled={isGenerating} size="lg">
-                  {isGenerating ? 'Generating Quiz...' : 'Generate New Quiz'}
+                <Button onClick={generateQuiz} disabled={isGenerating || loading} size="lg">
+                  {isGenerating || loading ? 'Generating Quiz...' : 'Generate New Quiz'}
                 </Button>
               </CardContent>
             </Card>
@@ -199,7 +242,7 @@ const Quiz = () => {
                     </Button>
                     <Button
                       onClick={handleNextQuestion}
-                      disabled={selectedAnswer === null}
+                      disabled={selectedAnswer === null || loading}
                     >
                       {currentQuestion < currentQuiz.questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
                     </Button>
@@ -304,7 +347,7 @@ const Quiz = () => {
                   <RotateCcw className="w-4 h-4 mr-2" />
                   Take Another Quiz
                 </Button>
-                <Button onClick={generateQuiz} disabled={isGenerating}>
+                <Button onClick={generateQuiz} disabled={isGenerating || loading}>
                   Generate New Quiz
                 </Button>
               </div>

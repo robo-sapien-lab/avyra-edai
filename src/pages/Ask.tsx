@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { useSupabaseFunction } from '@/hooks/useSupabaseFunction';
+import { useAuthStore } from '@/store/authStore';
+import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
 
 interface Question {
@@ -22,17 +23,35 @@ interface Question {
 const Ask = () => {
   const [question, setQuestion] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
-  const { invoke, loading } = useSupabaseFunction();
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim()) return;
+    if (!question.trim() || !user) return;
 
     const currentQuestion = question;
     setQuestion('');
+    setLoading(true);
 
     try {
-      const result = await invoke('ask', { question: currentQuestion });
+      // API call to Google Cloud backend with Vertex AI LLM-powered response
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/ask`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: currentQuestion,
+          studentId: user.id
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       
       const newQuestion: Question = {
         id: Date.now().toString(),
@@ -46,8 +65,20 @@ const Ask = () => {
       };
 
       setQuestions(prev => [newQuestion, ...prev]);
+      
+      toast({
+        title: 'Question answered!',
+        description: 'Your AI tutor has provided a response.',
+      });
     } catch (error) {
-      // Error handled by hook
+      console.error('Error asking question:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to get answer. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 

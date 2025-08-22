@@ -4,50 +4,85 @@ import { TrendingUp, BookOpen, Target, Clock, Award } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress as ProgressBar } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { useSupabaseFunction } from '@/hooks/useSupabaseFunction';
+import { useAuthStore } from '@/store/authStore';
+import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
 
 interface ProgressData {
-  totalQuestions: number;
-  totalQuizzes: number;
-  averageScore: number;
-  totalUploads: number;
-  weakTopics: Array<{
-    subject: string;
-    topic: string;
-    subtopic?: string;
-    mastery_score: number;
-  }>;
-  recentActivity: Array<{
-    type: 'question' | 'quiz';
-    title: string;
-    score?: number;
-    timestamp: string;
-  }>;
-  progressBySubject: Array<{
-    subject: string;
-    topics: Array<{
+  progress: {
+    totalQuestions: number;
+    totalQuizzes: number;
+    averageScore: number;
+    totalUploads: number;
+    weakTopics: Array<{
+      subject: string;
       topic: string;
+      subtopic?: string;
       mastery_score: number;
-      questions_attempted: number;
     }>;
+    recentActivity: Array<{
+      type: 'question' | 'quiz';
+      title: string;
+      score?: number;
+      timestamp: string;
+    }>;
+    progressBySubject: Array<{
+      subject: string;
+      topics: Array<{
+        topic: string;
+        mastery_score: number;
+        questions_attempted: number;
+      }>;
+    }>;
+  };
+  leaderboard: Array<{
+    rank: number;
+    studentId: string;
+    studentName: string;
+    score: number;
+    totalQuestions: number;
+    averageScore: number;
   }>;
 }
 
 const Progress = () => {
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
-  const { invoke, loading } = useSupabaseFunction();
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuthStore();
 
   useEffect(() => {
-    loadProgressData();
-  }, []);
+    if (user) {
+      loadProgressData();
+    }
+  }, [user]);
 
   const loadProgressData = async () => {
+    if (!user) return;
+    
+    setLoading(true);
     try {
-      const data = await invoke('dashboard');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/progress/${user.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
       setProgressData(data);
     } catch (error) {
-      // Error handled by hook
+      console.error('Error loading progress data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load progress data. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -80,6 +115,8 @@ const Progress = () => {
     );
   }
 
+  const { progress, leaderboard } = progressData;
+
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -102,7 +139,7 @@ const Progress = () => {
                 <div className="flex items-center gap-3">
                   <BookOpen className="w-8 h-8 text-blue-600" />
                   <div>
-                    <p className="text-2xl font-bold">{progressData.totalUploads}</p>
+                    <p className="text-2xl font-bold">{progress.totalUploads}</p>
                     <p className="text-sm text-muted-foreground">Materials Uploaded</p>
                   </div>
                 </div>
@@ -114,7 +151,7 @@ const Progress = () => {
                 <div className="flex items-center gap-3">
                   <Target className="w-8 h-8 text-green-600" />
                   <div>
-                    <p className="text-2xl font-bold">{progressData.totalQuestions}</p>
+                    <p className="text-2xl font-bold">{progress.totalQuestions}</p>
                     <p className="text-sm text-muted-foreground">Questions Asked</p>
                   </div>
                 </div>
@@ -126,7 +163,7 @@ const Progress = () => {
                 <div className="flex items-center gap-3">
                   <Award className="w-8 h-8 text-purple-600" />
                   <div>
-                    <p className="text-2xl font-bold">{progressData.totalQuizzes}</p>
+                    <p className="text-2xl font-bold">{progress.totalQuizzes}</p>
                     <p className="text-sm text-muted-foreground">Quizzes Completed</p>
                   </div>
                 </div>
@@ -138,7 +175,7 @@ const Progress = () => {
                 <div className="flex items-center gap-3">
                   <TrendingUp className="w-8 h-8 text-orange-600" />
                   <div>
-                    <p className="text-2xl font-bold">{Math.round(progressData.averageScore)}%</p>
+                    <p className="text-2xl font-bold">{Math.round(progress.averageScore)}%</p>
                     <p className="text-sm text-muted-foreground">Average Score</p>
                   </div>
                 </div>
@@ -156,8 +193,8 @@ const Progress = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {progressData.progressBySubject.length > 0 ? (
-                  progressData.progressBySubject.map((subject, index) => (
+                {progress.progressBySubject.length > 0 ? (
+                  progress.progressBySubject.map((subject, index) => (
                     <div key={index} className="space-y-3">
                       <h3 className="font-semibold">{subject.subject}</h3>
                       <div className="space-y-2">
@@ -203,9 +240,9 @@ const Progress = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {progressData.weakTopics.length > 0 ? (
+                {progress.weakTopics.length > 0 ? (
                   <div className="space-y-3">
-                    {progressData.weakTopics.slice(0, 5).map((topic, index) => (
+                    {progress.weakTopics.slice(0, 5).map((topic, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                         <div>
                           <p className="font-medium">{topic.topic}</p>
@@ -240,9 +277,9 @@ const Progress = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {progressData.recentActivity.length > 0 ? (
+              {progress.recentActivity.length > 0 ? (
                 <div className="space-y-3">
-                  {progressData.recentActivity.slice(0, 10).map((activity, index) => (
+                  {progress.recentActivity.slice(0, 10).map((activity, index) => (
                     <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center gap-3">
                         {activity.type === 'quiz' ? (
@@ -268,6 +305,49 @@ const Progress = () => {
               ) : (
                 <p className="text-muted-foreground text-center py-8">
                   Start learning to see your activity here
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Leaderboard */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="w-5 h-5" />
+                Leaderboard
+              </CardTitle>
+              <CardDescription>
+                Top performers in your learning community
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {leaderboard.length > 0 ? (
+                <div className="space-y-3">
+                  {leaderboard.slice(0, 10).map((student, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-bold text-primary">
+                            {student.rank}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium">{student.studentName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {student.totalQuestions} questions • {Math.round(student.averageScore)}% avg
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="text-lg font-bold">
+                        {student.score}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-8">
+                  No leaderboard data available yet
                 </p>
               )}
             </CardContent>
