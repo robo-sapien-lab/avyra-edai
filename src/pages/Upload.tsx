@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
+import { apiFetch } from '@/lib/api';
 
 const Upload = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -57,16 +58,10 @@ const Upload = () => {
     }, 200);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/upload`, {
+      const result = await apiFetch('/upload', {
         method: 'POST',
         body: formData
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
       
       clearInterval(progressInterval);
       setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));

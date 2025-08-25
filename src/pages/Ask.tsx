@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
+import { apiFetch } from '@/lib/api';
 
 interface Question {
   id: string;
@@ -36,22 +37,13 @@ const Ask = () => {
 
     try {
       // API call to Google Cloud backend with Vertex AI LLM-powered response
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/ask`, {
+      const result = await apiFetch('/ask', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           question: currentQuestion,
           studentId: user.id
         })
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
       
       const newQuestion: Question = {
         id: Date.now().toString(),

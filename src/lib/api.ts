@@ -1,13 +1,15 @@
+import { supabase } from './supabaseClient';
+
 // API configuration for Google Cloud backend
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 // API endpoints
 export const API_ENDPOINTS = {
-  ASK: '/api/ask',
-  UPLOAD: '/api/upload',
-  PROGRESS: '/api/progress',
-  QUIZ_START: '/api/quiz/start',
-  QUIZ_SUBMIT: '/api/quiz/submit',
+  ASK: '/ask',
+  UPLOAD: '/upload',
+  PROGRESS: '/progress',
+  QUIZ_START: '/quiz/start',
+  QUIZ_SUBMIT: '/quiz/submit',
 } as const;
 
 // Utility function to build full API URLs
@@ -23,23 +25,48 @@ export const buildApiUrl = (endpoint: string, pathParams?: Record<string, string
   return url;
 };
 
-// Common fetch wrapper with error handling
+// Enhanced fetch wrapper with JWT authentication and error handling
 export const apiFetch = async (
-  url: string, 
+  endpoint: string, 
   options: RequestInit = {}
-): Promise<Response> => {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
+): Promise<any> => {
+  try {
+    // Get current session token
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.access_token) {
+      throw new Error('No authentication token available');
+    }
+
+    // Build full URL
+    const url = `${API_BASE_URL}${endpoint}`;
+    
+    // Prepare headers
+    const headers: HeadersInit = {
+      'Authorization': `Bearer ${session.access_token}`,
       ...options.headers,
-    },
-  });
+    };
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    // Only set Content-Type if not already set and not FormData
+    if (!options.headers?.['Content-Type'] && !(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    // Make the request
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+    }
+
+    // Return parsed JSON for successful responses
+    return await response.json();
+  } catch (error) {
+    console.error('API request failed:', error);
+    throw error;
   }
-
-  return response;
 };
 

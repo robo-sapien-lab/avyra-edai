@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
+import { apiFetch } from '@/lib/api';
 
 interface QuizQuestion {
   question: string;
@@ -49,22 +50,13 @@ const Quiz = () => {
     
     setIsGenerating(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/quiz/start`, {
+      const result = await apiFetch('/quiz/start', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           studentId: user.id,
           topic: undefined // Optional topic parameter
         })
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
       setCurrentQuiz(result.quiz);
       setCurrentQuestion(0);
       setSelectedAnswers([]);
@@ -107,23 +99,14 @@ const Quiz = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/quiz/submit`, {
+      const result = await apiFetch('/quiz/submit', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           quizId: currentQuiz.id,
           studentId: user.id,
           answers
         })
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
       setQuizResult(result);
       setShowResults(true);
       

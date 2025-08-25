@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
+import { apiFetch } from '@/lib/api';
 
 interface ProgressData {
   progress: {
@@ -61,18 +62,7 @@ const Progress = () => {
     
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/progress/${user.id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await apiFetch(`/progress/${user.id}`, { method: 'GET' });
       setProgressData(data);
     } catch (error) {
       console.error('Error loading progress data:', error);
