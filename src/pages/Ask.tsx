@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
 import { apiFetch } from '@/lib/api';
@@ -25,11 +25,11 @@ const Ask = () => {
   const [question, setQuestion] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!question.trim() || !user) return;
+    if (!question.trim() || !isAuthenticated || !user) return;
 
     const currentQuestion = question;
     setQuestion('');

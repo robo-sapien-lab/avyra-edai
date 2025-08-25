@@ -35,7 +35,7 @@ export const apiFetch = async (
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session?.access_token) {
-      throw new Error('No authentication token available');
+      throw new Error('Authentication required. Please log in to continue.');
     }
 
     // Build full URL
@@ -59,14 +59,37 @@ export const apiFetch = async (
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+      if (response.status === 401) {
+        throw new Error('Authentication expired. Please log in again.');
+      } else if (response.status === 404) {
+        throw new Error(`Endpoint not found: ${endpoint}`);
+      } else {
+        throw new Error(`Request failed: ${response.status} - ${response.statusText}`);
+      }
     }
 
     // Return parsed JSON for successful responses
     return await response.json();
   } catch (error) {
     console.error('API request failed:', error);
-    throw error;
+    
+    // Re-throw with more context
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('An unexpected error occurred');
+    }
   }
+};
+
+// Helper function to check if user is authenticated before making API calls
+export const requireAuth = async (): Promise<string> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session?.access_token) {
+    throw new Error('Authentication required');
+  }
+  
+  return session.access_token;
 };
 
