@@ -77,7 +77,8 @@ avyra-ui/
 ├── src/
 │   ├── components/          # Reusable UI components
 │   │   ├── ui/             # shadcn/ui components
-│   │   └── Layout.tsx      # Main layout component
+│   │   ├── Layout.tsx      # Main layout component
+│   │   └── ExampleUsage.tsx # Example component with auth
 │   ├── hooks/              # Custom React hooks
 │   │   ├── useAuth.tsx     # Authentication hook
 │   │   └── use-mobile.tsx  # Mobile detection hook
@@ -104,7 +105,7 @@ avyra-ui/
 
 ### Supabase Singleton Pattern
 
-The app uses a singleton pattern for the Supabase client to prevent multiple instances and ensure consistent authentication state across the application.
+The app uses a singleton pattern for the Supabase client to prevent multiple instances and ensure consistent authentication state across the application. This fixes the "Multiple GoTrueClient instances detected" error.
 
 ```typescript
 // src/lib/supabaseClient.ts
@@ -113,6 +114,11 @@ import { getSupabaseClient } from '@/lib/supabaseClient';
 // Always use the singleton instance
 export const supabase = getSupabaseClient();
 ```
+
+**Benefits:**
+- ✅ Only one client instance ever created
+- ✅ Prevents "Multiple GoTrueClient instances" error
+- ✅ Memory efficient and consistent state across the app
 
 ### useAuth Hook
 
@@ -131,11 +137,19 @@ const MyComponent = () => {
 };
 ```
 
+**Features:**
+- ✅ **Automatic Session Management** - No manual token handling
+- ✅ **Real-time Updates** - Listens to auth state changes
+- ✅ **Profile Management** - Fetches and updates user profiles
+- ✅ **Loading States** - Proper loading indicators
+- ✅ **Error Handling** - Graceful error management
+- ✅ **Memory Safe** - Proper cleanup of subscriptions
+
 ## 🌐 API Integration
 
 ### Automatic JWT Authentication
 
-All API calls automatically include JWT tokens from Supabase:
+All API calls automatically include JWT tokens from Supabase. This fixes the "No authentication token available" error.
 
 ```typescript
 import { apiFetch } from '@/lib/api';
@@ -150,6 +164,12 @@ const result = await apiFetch('/ask', {
 });
 ```
 
+**Benefits:**
+- ✅ **Automatic JWT Inclusion** - No manual token management
+- ✅ **Smart Content-Type** - Handles FormData correctly
+- ✅ **Enhanced Error Messages** - Clear, actionable errors
+- ✅ **URL Construction** - Prevents double `/api/api/` issues
+
 ### Supported Endpoints
 
 - `POST /ask` - Submit questions for AI-powered responses
@@ -157,6 +177,42 @@ const result = await apiFetch('/ask', {
 - `GET /progress/:studentId` - Retrieve learning progress
 - `POST /quiz/start` - Generate adaptive quizzes
 - `POST /quiz/submit` - Submit quiz answers
+
+### Backend Requirements
+
+The backend expects these specific request formats:
+
+#### **For `/api/ask` (POST):**
+```typescript
+{
+  "question": "What is the main concept discussed in my notes?",
+  "studentId": "user-uuid-from-supabase" // Must match JWT token user ID
+}
+```
+
+#### **For `/api/upload` (POST):**
+```typescript
+// FormData with:
+- file: File object (PDF, JPEG, PNG, etc.)
+- studentId: "user-uuid-from-supabase"
+- subject: "Mathematics" (optional)
+- topic: "Algebra" (optional)
+- subtopic: "Linear Equations" (optional)
+```
+
+#### **For `/api/quiz/start` (POST):**
+```typescript
+{
+  "studentId": "user-uuid-from-supabase",
+  "topic": "Algebra" // optional
+}
+```
+
+#### **For `/api/progress/:studentId` (GET):**
+```typescript
+// URL parameter must match authenticated user ID
+GET /api/progress/USER_UUID_FROM_JWT
+```
 
 ## 🎨 UI Components
 
@@ -173,24 +229,28 @@ Built with shadcn/ui and Tailwind CSS for a modern, accessible design:
 - AI-powered question answering
 - Real-time responses
 - Question history tracking
+- Automatic JWT authentication
 
 ### Upload Page (`/upload`)
 - Drag & drop file uploads
 - Multiple file formats (PDF, images)
 - Progress tracking
 - Subject/topic categorization
+- FormData handling without Content-Type override
 
 ### Quiz Page (`/quiz`)
 - AI-generated adaptive quizzes
 - Multiple choice questions
 - Score tracking
 - Explanations for answers
+- Session-based quiz management
 
 ### Progress Page (`/progress`)
 - Learning analytics dashboard
 - Subject mastery tracking
 - Weak topic identification
 - Achievement badges
+- Real-time data updates
 
 ## 🚀 Deployment
 
@@ -229,27 +289,130 @@ npm run type-check   # TypeScript type checking
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### Common Issues & Solutions
 
-**"Multiple GoTrueClient instances detected"**
-- ✅ Fixed with singleton pattern in `src/lib/supabaseClient.ts`
+#### **"Multiple GoTrueClient instances detected"**
+- ✅ **Fixed** with singleton pattern in `src/lib/supabaseClient.ts`
+- **Cause**: Multiple Supabase client instances being created
+- **Solution**: Singleton pattern ensures only one instance exists
 
-**"No authentication token available"**
-- ✅ Fixed with automatic JWT management in `src/lib/api.ts`
+#### **"No authentication token available"**
+- ✅ **Fixed** with automatic JWT management in `src/lib/api.ts`
+- **Cause**: JWT tokens not being automatically included in requests
+- **Solution**: `apiFetch` function automatically gets and includes tokens
 
-**404 errors on API calls**
-- ✅ Fixed with proper URL construction and environment variables
+#### **404 errors on API calls**
+- ✅ **Fixed** with proper URL construction and environment variables
+- **Cause**: Incorrect endpoint paths or missing base URL
+- **Solution**: Endpoints use `/ask` instead of `/api/ask` to prevent double `/api/api/...`
 
-**Authentication not working**
-- Check your `.env` file has correct Supabase credentials
-- Ensure user is logged in before making API calls
+#### **"Authorization Failed" Errors**
+- **Cause**: JWT token issues or student ID mismatches
+- **Solutions**:
+  - Ensure user is logged in before making API calls
+  - Check that `studentId` matches JWT token user ID
+  - Verify JWT token hasn't expired
+  - Check `.env` file has correct backend URL
 
 ### Environment Variables
 
 Make sure these are set in your `.env` file:
 - `VITE_SUPABASE_URL` - Your Supabase project URL
 - `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
-- `VITE_API_BASE_URL` - Your backend API base URL
+- `VITE_API_BASE_URL` - Your backend API base URL (should end with `/api`)
+
+### Debugging Authorization Issues
+
+#### **1. Check JWT Token Payload**
+```typescript
+// Add this to apiFetch function temporarily
+const token = session.access_token;
+const payload = JSON.parse(atob(token.split('.')[1]));
+console.log('JWT Payload:', {
+  userId: payload.sub,
+  expires: new Date(payload.exp * 1000),
+  currentTime: new Date()
+});
+console.log('Supabase user.id:', user.id);
+```
+
+#### **2. Verify Request Headers**
+```typescript
+// Add this logging
+console.log('Request headers:', headers);
+console.log('Full request:', {
+  url,
+  method: options.method,
+  headers,
+  body: options.body
+});
+```
+
+#### **3. Check Backend Error Response**
+Look for specific error codes:
+- `UNAUTHORIZED`: Missing or invalid Authorization header
+- `TOKEN_EXPIRED`: JWT token has expired
+- `INVALID_TOKEN`: JWT token is malformed
+- `ACCESS_DENIED`: Student ID doesn't match JWT user ID
+
+## 🔍 **Why Authorization Errors Occur**
+
+### **Common Causes:**
+
+#### **1. Student ID Mismatch**
+```typescript
+// ❌ WRONG - Student ID doesn't match JWT token user ID
+{
+  "studentId": "different-user-id", // Must match JWT token user ID
+  "question": "Hello"
+}
+
+// ✅ CORRECT - Student ID matches JWT token user ID
+{
+  "studentId": "same-user-id-as-jwt", // Must match JWT token user ID
+  "question": "Hello"
+}
+```
+
+#### **2. Missing Authorization Header**
+```typescript
+// ❌ WRONG - No authorization header
+fetch('/api/ask', {
+  method: 'POST',
+  body: JSON.stringify({ question: "Hello", studentId: "123" })
+});
+
+// ✅ CORRECT - With authorization header
+fetch('/api/ask', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_JWT_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ question: "Hello", studentId: "123" })
+});
+```
+
+#### **3. Invalid JWT Token Format**
+```typescript
+// ❌ WRONG - Missing "Bearer " prefix
+headers: {
+  'Authorization': 'YOUR_JWT_TOKEN'
+}
+
+// ✅ CORRECT - With "Bearer " prefix
+headers: {
+  'Authorization': 'Bearer YOUR_JWT_TOKEN'
+}
+```
+
+## 🎯 **Key Points to Remember**
+
+1. **Every request needs `Authorization: Bearer JWT_TOKEN`**
+2. **Student ID must match the user ID in the JWT token**
+3. **JWT tokens expire and need refreshing**
+4. **Use Supabase's built-in JWT tokens, not custom ones**
+5. **Check both frontend headers and backend error logs**
 
 ## 🤝 Contributing
 
@@ -265,7 +428,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **Documentation**: Check the [API_INTEGRATION.md](API_INTEGRATION.md) and [SUPABASE_SINGLETON_FIX.md](SUPABASE_SINGLETON_FIX.md) files
 - **Issues**: Report bugs and feature requests via GitHub Issues
 - **Discussions**: Join the conversation in GitHub Discussions
 
@@ -279,3 +441,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ using modern web technologies**
+
+## 📚 **Additional Resources**
+
+### **API Integration Documentation**
+- All API calls use the `apiFetch` function for automatic JWT inclusion
+- FormData uploads work correctly without Content-Type override
+- Error messages are descriptive and include HTTP status text
+
+### **Authentication Flow**
+- Users sign in/up through Supabase Auth
+- JWT tokens are automatically managed and included in requests
+- Session state is maintained across the application
+- Profile data is fetched and updated automatically
+
+### **Development Best Practices**
+- Use the `useAuth` hook for authentication state
+- Always check `isAuthenticated` before making API calls
+- Handle loading states and errors gracefully
+- Use TypeScript for type safety and better development experience

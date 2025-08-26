@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuthStore } from '@/store/authStore';
 import { BookOpen, LogOut, User } from 'lucide-react';
+import Footer from './Footer';
 
 interface LayoutProps {
   children: ReactNode;
@@ -30,7 +31,7 @@ const Layout = ({ children }: LayoutProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -72,7 +73,9 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
       </header>
 
-      <main>{children}</main>
+      <main className="flex-1">{children}</main>
+      
+      <Footer />
     </div>
   );
 };
