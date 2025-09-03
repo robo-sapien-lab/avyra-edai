@@ -279,12 +279,13 @@ pnpm build
    - Click "New Project" and import your repository
 
 2. **Set Environment Variables**
-   In your Vercel project settings, add these environment variables:
-   ```
-   VITE_SUPABASE_URL=your-supabase-project-url
-   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-   VITE_API_BASE_URL=https://your-backend-api-url.com/api
-   ```
+   In your Vercel project dashboard:
+   - Go to your project → Settings → Environment Variables
+   - Add these three environment variables:
+     - `VITE_SUPABASE_URL` = your-supabase-project-url
+     - `VITE_SUPABASE_ANON_KEY` = your-supabase-anon-key  
+     - `VITE_API_BASE_URL` = https://your-backend-api-url.com/api
+   - Make sure to set them for "Production", "Preview", and "Development" environments
 
 3. **Deploy**
    - Vercel will automatically detect this as a Vite project
