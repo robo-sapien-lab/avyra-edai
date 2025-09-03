@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, BookOpen, Target, Clock, Award } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,9 +55,9 @@ const Progress = () => {
     if (user) {
       loadProgressData();
     }
-  }, [user]);
+  }, [user, loadProgressData]);
 
-  const loadProgressData = async () => {
+  const loadProgressData = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
@@ -74,7 +74,7 @@ const Progress = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const getMasteryColor = (score: number) => {
     if (score >= 80) return 'text-green-600 bg-green-100';

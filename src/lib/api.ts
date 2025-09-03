@@ -29,7 +29,7 @@ export const buildApiUrl = (endpoint: string, pathParams?: Record<string, string
 export const apiFetch = async (
   endpoint: string, 
   options: RequestInit = {}
-): Promise<any> => {
+): Promise<unknown> => {
   try {
     // Get current session from Supabase
     const { data: { session } } = await supabase.auth.getSession();

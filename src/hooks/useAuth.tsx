@@ -31,8 +31,8 @@ export const useAuth = () => {
       }
       
       return { error: null };
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error.message : 'An unexpected error occurred' };
     }
   };
 
@@ -75,8 +75,8 @@ export const useAuth = () => {
       }
       
       return { error: null };
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error.message : 'An unexpected error occurred' };
     }
   };
 
@@ -124,8 +124,8 @@ export const useAuth = () => {
       
       await fetchProfile(user.id);
       return { error: null };
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error.message : 'An unexpected error occurred' };
     }
   };
 

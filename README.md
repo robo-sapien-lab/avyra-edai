@@ -15,7 +15,7 @@ A modern, React-based learning platform that provides AI-powered tutoring, adapt
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **UI Components**: shadcn/ui + Tailwind CSS
-- **Authentication**: Firebase Auth with JWT
+- **Authentication**: Supabase Auth with JWT
 - **State Management**: Zustand + Custom React Hooks
 - **Styling**: Tailwind CSS + Framer Motion
 - **Build Tool**: Vite
@@ -25,7 +25,7 @@ A modern, React-based learning platform that provides AI-powered tutoring, adapt
 
 - Node.js 18+ ([install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
 - npm or pnpm
-- Firebase account and project
+- Supabase account and project
 - Google Cloud Run backend (for API endpoints)
 
 ## 🚀 Quick Start
@@ -50,13 +50,9 @@ pnpm install
 Create a `.env` file in the project root:
 
 ```bash
-# Firebase Configuration
-VITE_FIREBASE_API_KEY=your-api-key
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
-VITE_FIREBASE_APP_ID=your-app-id
+# Supabase Configuration
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 # API Configuration
 VITE_API_BASE_URL=https://your-cloud-run-backend.com/api
@@ -88,7 +84,7 @@ avyra-ui/
 │   │   └── use-mobile.tsx  # Mobile detection hook
 │   ├── lib/                # Utility libraries
 │   │   ├── api.ts          # API client with JWT auth
-│   │   ├── supabaseClient.ts # Supabase singleton client
+│   │   ├── supabase.ts # Supabase client
 │   │   └── utils.ts        # Helper functions
 │   ├── pages/              # Application pages
 │   │   ├── Ask.tsx         # AI Q&A interface
@@ -107,22 +103,31 @@ avyra-ui/
 
 ## 🔐 Authentication System
 
-### Firebase Authentication Pattern
+### Supabase Authentication Pattern
 
-The app uses Firebase Authentication for secure user management and JWT token generation. This provides robust authentication without the resource limit issues experienced with Supabase.
+The app uses Supabase Authentication for secure user management and JWT token generation. This provides robust authentication with built-in session management.
 
 ```typescript
-// src/lib/firebase.ts
-import { auth, db } from '@/lib/firebase';
+// src/lib/supabase.ts
+import { createClient } from '@supabase/supabase-js';
 
-// Firebase auth and Firestore instances
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  }
+);
 ```
 
 **Benefits:**
-- ✅ Only one client instance ever created
-- ✅ Prevents "Multiple GoTrueClient instances" error
+- ✅ Built-in session persistence
+- ✅ Automatic token refresh
+- ✅ URL-based session detection
 - ✅ Memory efficient and consistent state across the app
 
 ### useAuth Hook
@@ -154,7 +159,7 @@ const MyComponent = () => {
 
 ### Automatic JWT Authentication
 
-All API calls automatically include JWT tokens from Firebase. This provides secure authentication without resource limit issues.
+All API calls automatically include JWT tokens from Supabase. This provides secure authentication with automatic token management.
 
 ```typescript
 import { apiFetch } from '@/lib/api';
@@ -267,12 +272,29 @@ npm run build
 pnpm build
 ```
 
-### Deploy Options
+### Deploy to Vercel
 
-1. **Vercel** - Recommended for React apps
-2. **Netlify** - Great for static sites
-3. **GitHub Pages** - Free hosting for open source
-4. **Custom Domain** - Connect your own domain
+1. **Connect your repository to Vercel**
+   - Go to [vercel.com](https://vercel.com) and sign in
+   - Click "New Project" and import your repository
+
+2. **Set Environment Variables**
+   In your Vercel project settings, add these environment variables:
+   ```
+   VITE_SUPABASE_URL=your-supabase-project-url
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+   VITE_API_BASE_URL=https://your-backend-api-url.com/api
+   ```
+
+3. **Deploy**
+   - Vercel will automatically detect this as a Vite project
+   - The build will run automatically on every push to your main branch
+
+### Other Deploy Options
+
+1. **Netlify** - Great for static sites
+2. **GitHub Pages** - Free hosting for open source
+3. **Custom Domain** - Connect your own domain
 
 ## 🔧 Development
 
@@ -297,14 +319,14 @@ npm run type-check   # TypeScript type checking
 ### Common Issues & Solutions
 
 #### **"Multiple GoTrueClient instances detected"**
-- ✅ **Resolved** by migrating to Firebase Authentication
-- **Cause**: Supabase client instance conflicts
-- **Solution**: Firebase provides single, stable authentication instance
+- ✅ **Resolved** by using single Supabase client instance
+- **Cause**: Multiple Supabase client instances created
+- **Solution**: Use the singleton client from `src/lib/supabase.ts`
 
 #### **"No authentication token available"**
-- ✅ **Resolved** with Firebase JWT management in `src/lib/api.ts`
+- ✅ **Resolved** with Supabase JWT management in `src/lib/api.ts`
 - **Cause**: JWT tokens not being automatically included in requests
-- **Solution**: `apiFetch` function automatically gets Firebase ID tokens
+- **Solution**: `apiFetch` function automatically gets Supabase access tokens
 
 #### **404 errors on API calls**
 - ✅ **Fixed** with proper URL construction and environment variables
@@ -322,12 +344,8 @@ npm run type-check   # TypeScript type checking
 ### Environment Variables
 
 Make sure these are set in your `.env` file:
-- `VITE_FIREBASE_API_KEY` - Your Firebase API key
-- `VITE_FIREBASE_AUTH_DOMAIN` - Your Firebase auth domain
-- `VITE_FIREBASE_PROJECT_ID` - Your Firebase project ID
-- `VITE_FIREBASE_STORAGE_BUCKET` - Your Firebase storage bucket
-- `VITE_FIREBASE_MESSAGING_SENDER_ID` - Your Firebase messaging sender ID
-- `VITE_FIREBASE_APP_ID` - Your Firebase app ID
+- `VITE_SUPABASE_URL` - Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
 - `VITE_API_BASE_URL` - Your backend API base URL (should end with `/api`)
 
 ### Debugging Authorization Issues
