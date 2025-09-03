@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
 import { apiFetch } from '@/lib/api';
@@ -43,7 +43,7 @@ const Quiz = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   const generateQuiz = async () => {
     if (!user) return;

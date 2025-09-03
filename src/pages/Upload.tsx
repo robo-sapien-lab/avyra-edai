@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
 import { apiFetch } from '@/lib/api';
@@ -21,7 +21,7 @@ const Upload = () => {
   const [completedUploads, setCompletedUploads] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {

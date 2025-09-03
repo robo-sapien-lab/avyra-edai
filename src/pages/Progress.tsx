@@ -4,7 +4,7 @@ import { TrendingUp, BookOpen, Target, Clock, Award } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress as ProgressBar } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
 import { apiFetch } from '@/lib/api';
@@ -49,7 +49,7 @@ interface ProgressData {
 const Progress = () => {
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuthStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (user) {

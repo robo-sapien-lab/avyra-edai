@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { supabase } from './supabase';
 
 // API configuration for Google Cloud backend
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -25,25 +25,28 @@ export const buildApiUrl = (endpoint: string, pathParams?: Record<string, string
   return url;
 };
 
-// Enhanced fetch wrapper with JWT authentication and error handling
+// Enhanced fetch wrapper with Supabase JWT authentication and error handling
 export const apiFetch = async (
   endpoint: string, 
   options: RequestInit = {}
 ): Promise<any> => {
   try {
-    // Get current session token
+    // Get current session from Supabase
     const { data: { session } } = await supabase.auth.getSession();
     
-    if (!session?.access_token) {
+    if (!session?.user) {
       throw new Error('Authentication required. Please log in to continue.');
     }
 
+    // Get Supabase JWT token
+    const token = session.access_token;
+    
     // Build full URL
     const url = `${API_BASE_URL}${endpoint}`;
     
     // Prepare headers
     const headers: HeadersInit = {
-      'Authorization': `Bearer ${session.access_token}`,
+      'Authorization': `Bearer ${token}`,
       ...options.headers,
     };
 
@@ -86,7 +89,7 @@ export const apiFetch = async (
 export const requireAuth = async (): Promise<string> => {
   const { data: { session } } = await supabase.auth.getSession();
   
-  if (!session?.access_token) {
+  if (!session?.user) {
     throw new Error('Authentication required');
   }
   

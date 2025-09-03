@@ -15,7 +15,7 @@ A modern, React-based learning platform that provides AI-powered tutoring, adapt
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **UI Components**: shadcn/ui + Tailwind CSS
-- **Authentication**: Supabase Auth with JWT
+- **Authentication**: Firebase Auth with JWT
 - **State Management**: Zustand + Custom React Hooks
 - **Styling**: Tailwind CSS + Framer Motion
 - **Build Tool**: Vite
@@ -25,7 +25,7 @@ A modern, React-based learning platform that provides AI-powered tutoring, adapt
 
 - Node.js 18+ ([install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
 - npm or pnpm
-- Supabase account and project
+- Firebase account and project
 - Google Cloud Run backend (for API endpoints)
 
 ## 🚀 Quick Start
@@ -50,9 +50,13 @@ pnpm install
 Create a `.env` file in the project root:
 
 ```bash
-# Supabase Configuration
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
 
 # API Configuration
 VITE_API_BASE_URL=https://your-cloud-run-backend.com/api
@@ -103,16 +107,17 @@ avyra-ui/
 
 ## 🔐 Authentication System
 
-### Supabase Singleton Pattern
+### Firebase Authentication Pattern
 
-The app uses a singleton pattern for the Supabase client to prevent multiple instances and ensure consistent authentication state across the application. This fixes the "Multiple GoTrueClient instances detected" error.
+The app uses Firebase Authentication for secure user management and JWT token generation. This provides robust authentication without the resource limit issues experienced with Supabase.
 
 ```typescript
-// src/lib/supabaseClient.ts
-import { getSupabaseClient } from '@/lib/supabaseClient';
+// src/lib/firebase.ts
+import { auth, db } from '@/lib/firebase';
 
-// Always use the singleton instance
-export const supabase = getSupabaseClient();
+// Firebase auth and Firestore instances
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 ```
 
 **Benefits:**
@@ -149,7 +154,7 @@ const MyComponent = () => {
 
 ### Automatic JWT Authentication
 
-All API calls automatically include JWT tokens from Supabase. This fixes the "No authentication token available" error.
+All API calls automatically include JWT tokens from Firebase. This provides secure authentication without resource limit issues.
 
 ```typescript
 import { apiFetch } from '@/lib/api';
@@ -292,14 +297,14 @@ npm run type-check   # TypeScript type checking
 ### Common Issues & Solutions
 
 #### **"Multiple GoTrueClient instances detected"**
-- ✅ **Fixed** with singleton pattern in `src/lib/supabaseClient.ts`
-- **Cause**: Multiple Supabase client instances being created
-- **Solution**: Singleton pattern ensures only one instance exists
+- ✅ **Resolved** by migrating to Firebase Authentication
+- **Cause**: Supabase client instance conflicts
+- **Solution**: Firebase provides single, stable authentication instance
 
 #### **"No authentication token available"**
-- ✅ **Fixed** with automatic JWT management in `src/lib/api.ts`
+- ✅ **Resolved** with Firebase JWT management in `src/lib/api.ts`
 - **Cause**: JWT tokens not being automatically included in requests
-- **Solution**: `apiFetch` function automatically gets and includes tokens
+- **Solution**: `apiFetch` function automatically gets Firebase ID tokens
 
 #### **404 errors on API calls**
 - ✅ **Fixed** with proper URL construction and environment variables
@@ -317,8 +322,12 @@ npm run type-check   # TypeScript type checking
 ### Environment Variables
 
 Make sure these are set in your `.env` file:
-- `VITE_SUPABASE_URL` - Your Supabase project URL
-- `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
+- `VITE_FIREBASE_API_KEY` - Your Firebase API key
+- `VITE_FIREBASE_AUTH_DOMAIN` - Your Firebase auth domain
+- `VITE_FIREBASE_PROJECT_ID` - Your Firebase project ID
+- `VITE_FIREBASE_STORAGE_BUCKET` - Your Firebase storage bucket
+- `VITE_FIREBASE_MESSAGING_SENDER_ID` - Your Firebase messaging sender ID
+- `VITE_FIREBASE_APP_ID` - Your Firebase app ID
 - `VITE_API_BASE_URL` - Your backend API base URL (should end with `/api`)
 
 ### Debugging Authorization Issues
@@ -460,3 +469,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Always check `isAuthenticated` before making API calls
 - Handle loading states and errors gracefully
 - Use TypeScript for type safety and better development experience
+

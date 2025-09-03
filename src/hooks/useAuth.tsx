@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabaseClient';
+import { useState, useEffect } from 'react';
+import { User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 interface Profile {
   id: string;
@@ -12,172 +12,149 @@ interface Profile {
   updated_at: string;
 }
 
-interface AuthState {
-  user: User | null;
-  session: Session | null;
-  profile: Profile | null;
-  loading: boolean;
-  isAuthenticated: boolean;
-}
+export const useAuth = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-interface AuthActions {
-  signUp: (email: string, password: string, name: string, role: 'student' | 'teacher', grade?: number) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
-  fetchProfile: () => Promise<void>;
-  updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
-  refreshSession: () => Promise<void>;
-}
-
-export const useAuth = (): AuthState & AuthActions => {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    session: null,
-    profile: null,
-    loading: true,
-    isAuthenticated: false,
-  });
-
-  const fetchProfile = useCallback(async () => {
-    const { user } = state;
-    if (!user) return;
-
+  // Authentication methods
+  const signIn = async (email: string, password: string) => {
     try {
-      const { data: profile, error } = await supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        return { error: error.message };
+      }
+      
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message };
+    }
+  };
+
+  const signUp = async (email: string, password: string, name: string, role: 'student' | 'teacher', grade?: number) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            role,
+            grade,
+          }
+        }
+      });
+      
+      if (error) {
+        return { error: error.message };
+      }
+      
+      // Create profile in Supabase
+      if (data.user) {
+        const profileData = {
+          id: data.user.id,
+          name,
+          role,
+          grade,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert(profileData);
+          
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+        }
+      }
+      
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message };
+    }
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  // Profile management
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single();
-
+      
       if (error) {
         console.error('Error fetching profile:', error);
         return;
       }
-
-      setState(prev => ({ ...prev, profile }));
+      
+      if (data) {
+        setProfile(data as Profile);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
-  }, [state.user]);
+  };
 
-  const refreshSession = useCallback(async () => {
+  const updateProfile = async (updates: Partial<Profile>) => {
+    if (!user) return { error: 'No user found' };
+    
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
       
       if (error) {
-        console.error('Error refreshing session:', error);
-        return;
+        return { error: error.message };
       }
-
-      setState(prev => ({
-        ...prev,
-        session,
-        user: session?.user ?? null,
-        isAuthenticated: !!session?.user,
-        loading: false,
-      }));
-
-      if (session?.user) {
-        await fetchProfile();
-      }
-    } catch (error) {
-      console.error('Error refreshing session:', error);
-      setState(prev => ({ ...prev, loading: false }));
+      
+      await fetchProfile(user.id);
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message };
     }
-  }, [fetchProfile]);
+  };
 
-  const signUp = useCallback(async (email: string, password: string, name: string, role: 'student' | 'teacher', grade?: number) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          name,
-          role,
-          grade
-        }
-      }
-    });
-
-    return { error };
-  }, []);
-
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    return { error };
-  }, []);
-
-  const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setState({
-      user: null,
-      session: null,
-      profile: null,
-      loading: false,
-      isAuthenticated: false,
-    });
-  }, []);
-
-  const updateProfile = useCallback(async (updates: Partial<Profile>) => {
-    const { user } = state;
-    if (!user) return { error: 'No user found' };
-
-    const { error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id);
-
-    if (!error) {
-      await fetchProfile();
-    }
-
-    return { error };
-  }, [state.user, fetchProfile]);
-
-  // Initialize auth state and set up listeners
+  // Auth state listener
   useEffect(() => {
-    // Get initial session
-    refreshSession();
-
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setState(prev => ({
-          ...prev,
-          session,
-          user: session?.user ?? null,
-          isAuthenticated: !!session?.user,
-          loading: false,
-        }));
-
-        if (session?.user) {
-          await fetchProfile();
-        } else {
-          setState(prev => ({ ...prev, profile: null }));
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user ?? null);
+      setIsAuthenticated(!!session?.user);
+      
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
       }
-    );
+      setLoading(false);
+    });
 
-    // Cleanup subscription
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [refreshSession, fetchProfile]);
+    return () => subscription.unsubscribe();
+  }, []);
 
   return {
-    ...state,
-    signUp,
+    user,
+    profile,
+    loading,
+    isAuthenticated,
     signIn,
+    signUp,
     signOut,
     fetchProfile,
-    updateProfile,
-    refreshSession,
+    updateProfile
   };
 };

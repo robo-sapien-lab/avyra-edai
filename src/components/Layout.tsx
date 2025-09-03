@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, LogOut, User } from 'lucide-react';
 import Footer from './Footer';
 
@@ -12,7 +12,7 @@ interface LayoutProps {
 }
 
 const Layout = ({ children }: LayoutProps) => {
-  const { user, profile, signOut, loading } = useAuthStore();
+  const { user, profile, signOut, loading } = useAuth();
 
   if (loading) {
     return (

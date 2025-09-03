@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { useAuthStore } from '@/store/authStore';
+import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, GraduationCap, Users } from 'lucide-react';
 
 const Auth = () => {
@@ -19,7 +19,7 @@ const Auth = () => {
   const [grade, setGrade] = useState<number | undefined>();
   const [loading, setLoading] = useState(false);
   
-  const { user, signIn, signUp } = useAuthStore();
+  const { user, signIn, signUp } = useAuth();
   const { toast } = useToast();
 
   if (user) {
