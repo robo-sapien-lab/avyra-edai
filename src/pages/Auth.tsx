@@ -36,7 +36,7 @@ const Auth = () => {
         if (error) {
           toast({
             title: "Login Error",
-            description: error.message,
+            description: typeof error === 'string' ? error : 'Authentication failed',
             variant: "destructive"
           });
         } else {
@@ -50,7 +50,7 @@ const Auth = () => {
         if (error) {
           toast({
             title: "Signup Error",
-            description: error.message,
+            description: typeof error === 'string' ? error : 'Signup failed',
             variant: "destructive"
           });
         } else {
